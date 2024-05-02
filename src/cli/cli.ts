@@ -9,9 +9,12 @@ program
 program
     .command('execute-transaction')
     .description('Execute a transaction via Odos')
-    .action(async () => {
+    .requiredOption('-a, --address <type>', 'Address from which the transaction should be executed')
+    .action(async (cmd) => {
         dotenv.config();
-        const odosIntegration = new OdosIntegration();
+
+        const { address } =  cmd;
+        const odosIntegration = new OdosIntegration(address);
         try {
             await odosIntegration.executeOdosTransaction();
             console.log('Transaction executed successfully.');
