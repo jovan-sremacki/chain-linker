@@ -2,7 +2,7 @@ const { ethers } = require('ethers')
 const axios = require('axios')
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-const wallet = new ethers.Wallet('7ec785a48649a256276e98779f0b59c2e6cb963d8ddd5961340aadb3034afd3f', provider);
+const wallet = new ethers.Wallet('', provider);
 
 async function getQuoteFromOdos() {
     const endpoint = "https://api.odos.xyz/sor/quote/v2"
