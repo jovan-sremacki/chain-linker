@@ -3,6 +3,7 @@ const axios = require('axios')
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const wallet = new ethers.Wallet('7ec785a48649a256276e98779f0b59c2e6cb963d8ddd5961340aadb3034afd3f', provider);
+const eth = ethers.parseEther('0.00003');
 
 async function getQuoteFromOdos() {
     const endpoint = "https://api.odos.xyz/sor/quote/v2"
@@ -26,7 +27,7 @@ async function getQuoteFromOdos() {
         "chainId": 8453,
         "inputTokens": [
             {
-                "amount": "1",
+                "amount": eth.toString(),
                 "tokenAddress": "0x4200000000000000000000000000000000000006"
             }
         ],
@@ -76,7 +77,7 @@ async function executeOdosTransaction() {
     ], wallet)
 
     try {
-        const approvalResult = await tokenContract.approve(assembleTx.transaction.to, '10')
+        const approvalResult = await tokenContract.approve(assembleTx.transaction.to, eth.toString())
         await approvalResult.wait();
         console.log('Approved successfully');
     } catch (error) {
