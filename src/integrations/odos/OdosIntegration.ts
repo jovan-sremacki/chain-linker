@@ -54,27 +54,19 @@ class OdosIntegration extends BaseIntegration {
         }
     }
 
-    async approveToken(recipientAddress: string) {
-        const tokenContract = new ethers.Contract('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', [
-            'function approve(address spender, uint256 amount) returns (bool)'
-        ], this.wallet);
-
-        try {
-            const approvalResult = await tokenContract.approve(recipientAddress, '50000')
-            await approvalResult.wait();
-            console.log('Approved successfully');
-        } catch (error: any) {
-            console.log(`Error approving transaction: ${error.message}`)
-        }
-    }
-
     async executeOdosTransaction() {
         const quote = await this.getQuoteFromOdos()
         const assembleTx = await this.assembleTransaction(quote.pathId)
 
         try {
-            await this.approveToken(assembleTx.transaction.to);
             const currentNonce = await this.wallet.getNonce();
+            console.log(`Current nonce: ${currentNonce}`);
+
+            this.service.approveToken(
+                assembleTx.inputTokens[0].tokenAddress,
+                assembleTx.transaction.to,
+                assembleTx.inputTokens[0].amount
+            )
 
             const txResponse = await this.wallet.sendTransaction({
                 ...assembleTx.transaction,
@@ -108,25 +100,15 @@ class OdosIntegration extends BaseIntegration {
             return null;
         }
 
-        const fromTokenAddress = await this.service.getContractAddressBySymbol(availableTokens.tokenMap, this.fromToken);
-        if (!fromTokenAddress) {
-            console.error(`No address found for the symbol: ${this.fromToken}`);
+        const tokenTransfer = await this.service.prepareTokenTransfer(availableTokens.tokenMap, this.fromToken, this.amount);
+        if (!tokenTransfer?.success) {
+            console.error('Failed to prepare token transfer');
             return null;
         }
 
-        const isEth = this.fromToken.toLowerCase() === 'eth';
-        const contractIn = isEth ? null : await this.service.getTokenContract(fromTokenAddress);
-        const decimals = isEth ? 18 : await contractIn?.decimals();
-
-        if (!decimals && !isEth) {
-            console.error('Failed to fetch decimals for the token');
-            return null;
-        }
-
-        const amount = ethers.parseUnits(this.amount, decimals).toString();
         const inputToken = {
-            amount,
-            "tokenAddress": fromTokenAddress
+            "amount": tokenTransfer.amount,
+            "tokenAddress": tokenTransfer.tokenAddress
         };
 
         return [inputToken];
@@ -139,13 +121,13 @@ class OdosIntegration extends BaseIntegration {
             return null;
         }
 
-        const fromTokenAddress = await this.service.getContractAddressBySymbol(availableTokens.tokenMap, this.toToken);
-        if (!fromTokenAddress) {
+        const tokenAddress = await this.service.getContractAddressBySymbol(availableTokens.tokenMap, this.toToken);
+        if (!tokenAddress) {
             console.error(`No address found for the symbol: ${this.fromToken}`);
             return null;
         }
 
-        return [{ "proportion": 1, "tokenAddress": fromTokenAddress }];
+        return [{ "proportion": 1, "tokenAddress": tokenAddress }];
     }
 }
 
